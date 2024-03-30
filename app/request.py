@@ -2,6 +2,8 @@ from enum import Enum
 from socket import socket
 from .response import Response, ResponseCode
 
+Max_BUFFER_SIZE = 1024
+
 class RequestMethod(Enum):
     GET = "GET"
     HEAD = "HEAD"
@@ -34,9 +36,9 @@ class Request:
             # Multiple-resource bodies, consisting of a multipart body, each containing a different bit of information. 
             # This is typically associated with HTML Forms.
     
-    def __init__(self, raw_data: str, conn: socket):
+    def __init__(self, conn: socket):
         self.conn = conn
-        self.raw_data: str = raw_data
+        self.raw_data = conn.recv(Max_BUFFER_SIZE).decode()
         self.data: list[str] = self.raw_data.split("\r\n") #split into separate lines for processing
         self.header = RequestHeader(self.data) #send the lines to process the header
         self.response = Response(ResponseCode.INTERNAL_SERVER_ERROR) # set up as the default response and replace if successful
