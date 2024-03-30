@@ -1,7 +1,8 @@
 from enum import Enum
 from socket import socket
+from .contenttype import ContentType
 
-class StatusCode(Enum):
+class ResponseCode(Enum):
     OK = 200
     CREATED = 201
     BAD_REQUEST = 400
@@ -13,12 +14,73 @@ class StatusCode(Enum):
     NOT_IMPLEMENTED = 501
     HTTP_VERSION_NOT_SUPPORTED = 505
 
+class Response():
+    # HTTP response structure is composed of:
+    # 1. Status line containing:
+        # protocol version, usually HTTP/1.1
+        # status code, like 200, 404, or 500
+        # status text, a brief, purely informational, textual description of the status code to help a human understand the HTTP message.
+    # An optional set of HTTP headers: 
+        # a case-insensitive string followed by a colon (':') and 
+        # a value whose structure depends upon the header. 
+        # The whole header, including the value, consists of one single line, which can be quite long.
+        # Header Categories:
+            # General headers apply to the message as a whole
+            # Response headers, like Accept-Range, give additional information about the server which doesn't fit in the status line.
+            # Representation headers like content-type that describe the original format of the message data and any encoding applied
+    # An optional body, Bodies can be broadly divided into three categories:
+        # Single-resource bodies, consisting of a single file of known length, defined by the two headers: Content-Type and Content-Length.
+        # Single-resource bodies, consisting of a single file of unknown length, encoded by chunks with Transfer-Encoding set to chunked.
+        # Multiple-resource bodies, consisting of a multipart body, each containing a different section of information. These are relatively rare.
 
-class Response:
-    def __init__(self, code: StatusCode):
-        self.code = code
-        self.response = f"HTTP/1.1 {self.code.value} {self.code.name}\r\n\r\n"
+    def __init__(self, code: ResponseCode):
+        self.header = ResponseHeader(code)
+        self.body = ResponseBody()
+
+    # Build the response object
+    def __str__(self) -> str:
+        # eventually will need to update to include other headers
+        headers = [str(self.header)] + self.body.representationHeaders()
+        return f'{'\r\n'.join(headers)}\r\n\r\n{self.body}'
     
+    # Send the response
     def send(self, conn: socket) -> None:
-        conn.send(self.response.encode())
+        conn.send(str(self).encode())
 
+    # Add content to the response, update the content type to text plain
+    def setText(self, text: str) -> None:
+        self.body.setContent(text, ContentType.TEXT_PLAIN)
+    
+    # Set the response code
+    def setCode(self, code: ResponseCode) -> None:
+        self.header = ResponseHeader(code)   
+   
+# Tracks the response code, version, and eventually the headers
+class ResponseHeader():
+    def __init__(self, code: ResponseCode):
+        self.code = code
+        self.version = 'HTTP/1.1'
+    
+    def __str__(self) -> str:
+        return f'{self.version} {self.code.value} {self.code.name}'
+        
+# The body tracks the content type and the length that will be included in the headers section of the response
+class ResponseBody():
+    def __init__(self):
+        self.content = ''
+        self.content_type = ContentType.NONE
+
+    def __str__(self):
+        if self.content_type == ContentType.NONE:
+            return ''
+        return self.content
+    
+    def setContent(self, content: str, content_type: ContentType) -> None:
+        self.content = content
+        self.content_type = content_type
+    
+    # provid the additional content headers based on the contents of the body (content type, content length)
+    def representationHeaders(self) -> list[str]:
+        if self.content_type == ContentType.NONE:
+            return []
+        return [f'Content-Type: {self.content_type.value}',f'Content-Length: {len(self.content)}']

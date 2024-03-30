@@ -1,7 +1,6 @@
 from enum import Enum
 from socket import socket
-from .response import Response, StatusCode
-
+from .response import Response, ResponseCode
 
 class RequestMethod(Enum):
     GET = "GET"
@@ -11,13 +10,10 @@ class RequestMethod(Enum):
     DELETE = "DELETE"
     CONNECT = "CONNECT"
     OPTIONS = "OPTIONS"
-    #TRACE = "TRACE"    #Ignoring as no browsers seem to support it
-    PATCH = "PATCH"
 
 
 class Request:
-    def __init__(self, raw_data: str, conn: socket):
-    # HTTP requests structure and are composed of:
+    # HTTP requests structure is composed of:
     # 1. A request line describing the requests to be implemented. This is always a single line composed of:
         # HTTP method
         # request target
@@ -37,17 +33,38 @@ class Request:
             # Single-resource bodies, consisting of one single file, defined by the two headers: Content-Type and Content-Length.
             # Multiple-resource bodies, consisting of a multipart body, each containing a different bit of information. 
             # This is typically associated with HTML Forms.
+    
+    def __init__(self, raw_data: str, conn: socket):
+        self.conn = conn
+        self.raw_data: str = raw_data
+        self.data: list[str] = self.raw_data.split("\r\n") #split into separate lines for processing
+        self.header = RequestHeader(self.data.pop(0)) #grab the first line and parse the header
+        self.response = Response(ResponseCode.INTERNAL_SERVER_ERROR) # set up as the default response and replace if successful
 
-        try:
-            self.conn = conn
-            self.raw_data: str = raw_data
-            self.data: list[str] = self.raw_data.split("\r\n") #split into separate lines for processing
-            request_line = self.data[0]
-            method, self.target, self.version = request_line.split(" ") #gather key pieces of information from the start line
-            self.method = RequestMethod(method)
-        except Exception:
-            Response(StatusCode.BAD_REQUEST).send(conn)
+    # update the response code
+    def status(self, code: ResponseCode) -> "Request":
+        self.response.setCode(code)
+        return self
 
-    def respond(self, response: Response) -> None:
-        response.send(self.conn)
+    # set the response text
+    def text(self, text: str) -> "Request":
+        self.response.setText(text)
+        return self
+    
+    # end the response by sending
+    def end(self) -> None:
+        self.response.send(self.conn)
 
+    # the path requested    
+    def path(self) -> str:
+        return self.header.path
+    
+    # request verb
+    def method(self) -> RequestMethod:
+        return self.header.method
+
+
+class RequestHeader:
+    def __init__(self, header: str):
+        method, self.path, self.version = header.split(" ") #gather key pieces of information from the start line
+        self.method = RequestMethod(method)
