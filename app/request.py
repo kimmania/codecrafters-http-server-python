@@ -38,7 +38,7 @@ class Request:
         self.conn = conn
         self.raw_data: str = raw_data
         self.data: list[str] = self.raw_data.split("\r\n") #split into separate lines for processing
-        self.header = RequestHeader(self.data.pop(0)) #grab the first line and parse the header
+        self.header = RequestHeader(self.data) #send the lines to process the header
         self.response = Response(ResponseCode.INTERNAL_SERVER_ERROR) # set up as the default response and replace if successful
 
     # update the response code
@@ -62,9 +62,29 @@ class Request:
     # request verb
     def method(self) -> RequestMethod:
         return self.header.method
+    
+    def getHeaderValue(self, key: str) -> str:
+        if key in self.header.headers:
+            return self.header.headers[key]
+        return ""
 
 
 class RequestHeader:
-    def __init__(self, header: str):
-        method, self.path, self.version = header.split(" ") #gather key pieces of information from the start line
+    def __init__(self, request: list[str]):
+        requestLine = request.pop(0)
+        method, self.path, self.version = requestLine.split(" ") #gather key pieces of information from the start line
         self.method = RequestMethod(method)
+
+        #grab the headers
+        self.headers = {}
+        while len(request) > 0:
+            line = request.pop(0) #grab the next line
+            
+            if line == '':
+                # exit, the loop 
+                break
+
+            if ":" in line:
+                #have a header, parse it
+                key, value = line.split(":", 1)
+                self.headers[key.strip().lower()] = value.strip()

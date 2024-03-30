@@ -45,7 +45,9 @@ class Response():
     
     # Send the response
     def send(self, conn: socket) -> None:
-        conn.send(str(self).encode())
+        temp = str(self).encode()
+        print(f'response: {temp}')
+        conn.send(temp)
 
     # Add content to the response, update the content type to text plain
     def setText(self, text: str) -> None:

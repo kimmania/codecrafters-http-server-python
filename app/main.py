@@ -35,9 +35,12 @@ def main():
 
 
 def get(request: Request) -> None:
+    print(f'path: {request.path()}')
     match request.path():
         case "/":
             request.status(ResponseCode.OK).end()
+        case "/user-agent":
+            request.status(ResponseCode.OK).text(request.getHeaderValue("user-agent")).end()
         case path if path.startswith("/echo/"):
             request.status(ResponseCode.OK).text(path.removeprefix("/echo/")).end()
         case _:
