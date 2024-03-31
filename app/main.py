@@ -12,6 +12,7 @@ def main():
     args = parser.parse_args()
     server = WebServer(HOST, PORT, file_directory=args.directory)
 
+    # configures which endpoints and what function to execute for processing the request
     server.get("", RequestProcessor.upCheck)
     server.get("echo", RequestProcessor.echo)
     server.get("user-agent", RequestProcessor.returnUserAgent)
