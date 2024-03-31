@@ -38,7 +38,7 @@ def get(request: Request, directory: str | None = None) -> None:
             request.status(ResponseCode.NOT_FOUND).end()
 
 def retrieveFile(request: Request, directory: str | None = None) -> None:
-    filename = request.path().removeprefix('/file/')
+    filename = request.path().removeprefix('/file')
 
     if directory != None:
         filepath = directory + filename
