@@ -31,12 +31,15 @@ class WebServer:
         for t in self.thread_pool:
             t.join()
 
+    # function for adding a get endpoint
     def get(self, path: str, handler: callable = None):
         self.endpoints["GET " + path] = handler
 
+    # function for adding a post endpoint
     def post(self, path: str, handler: callable = None):
         self.endpoints["POST " + path] = handler
-    
+
+    # process the request by calling the appropriate endpoint relevant to the request's content
     def _process_request(self, conn: socket.socket):
         # Initialize to an error and update when known
         response = Response(ResponseCode.INTERNAL_SERVER_ERROR) 
