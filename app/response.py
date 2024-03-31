@@ -51,6 +51,8 @@ class Response():
         conn.send(temp)
 
     # todo: add header
+
+    # set the body's content including the content type used in the header
     def setContent(self, text: str, type: ContentType) -> "Response":
         self.body.setContent(text, type)
         return self
