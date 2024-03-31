@@ -33,33 +33,32 @@ class Response():
         # Single-resource bodies, consisting of a single file of unknown length, encoded by chunks with Transfer-Encoding set to chunked.
         # Multiple-resource bodies, consisting of a multipart body, each containing a different section of information. These are relatively rare.
 
+
     def __init__(self, code: ResponseCode):
-        self.header = ResponseHeader(code)
+        self.status = ResponseHeader(code)
+        self.headers: list[str] = []
         self.body = ResponseBody()
 
     # Build the response object
     def __str__(self) -> str:
         # eventually will need to update to include other headers
-        headers = [str(self.header)] + self.body.representationHeaders()
-        return f'{'\r\n'.join(headers)}\r\n\r\n{self.body}'
+        header_portion = [str(self.status)] + self.body.representationHeaders()
+        return f'{'\r\n'.join(header_portion)}\r\n\r\n{self.body}'
     
     # Send the response
     def send(self, conn: socket) -> None:
         temp = str(self).encode()
-        print(f'response: {temp}')
         conn.send(temp)
 
-    # Add content to the response, update the content type to text plain
-    def setText(self, text: str) -> None:
-        self.body.setContent(text, ContentType.TEXT_PLAIN)
+    # todo: add header
+    def setContent(self, text: str, type: ContentType) -> "Response":
+        self.body.setContent(text, type)
+        return self
 
-    # Set file contens to the response, update the content type to be application/octet-stream
-    def setFile(self, text: str) -> None:
-        self.body.setContent(text, ContentType.APPLICATION_OCTET_STREAM)
-    
     # Set the response code
-    def setCode(self, code: ResponseCode) -> None:
-        self.header = ResponseHeader(code)   
+    def setCode(self, code: ResponseCode) -> "Response":
+        self.status = ResponseHeader(code) 
+        return self  
    
 # Tracks the response code, version, and eventually the headers
 class ResponseHeader():

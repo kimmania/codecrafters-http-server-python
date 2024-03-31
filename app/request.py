@@ -1,8 +1,4 @@
 from enum import Enum
-from socket import socket
-from .response import Response, ResponseCode
-
-Max_BUFFER_SIZE = 4096
 
 class RequestMethod(Enum):
     GET = "GET"
@@ -35,56 +31,32 @@ class Request:
             # Single-resource bodies, consisting of one single file, defined by the two headers: Content-Type and Content-Length.
             # Multiple-resource bodies, consisting of a multipart body, each containing a different bit of information. 
             # This is typically associated with HTML Forms.
-    
-    def __init__(self, conn: socket):
-        self.conn = conn
-        self.raw_data = conn.recv(Max_BUFFER_SIZE).decode()
-        self.data: list[str] = self.raw_data.split("\r\n") #split into separate lines for processing
-        self.header = RequestHeader(self.data) #send the lines to process the header
-        self.response = Response(ResponseCode.INTERNAL_SERVER_ERROR) # set up as the default response and replace if successful
+    method: str
+    version: str
+    path: str
+    path_components: list[str] = []
+    headers: dict[str, str] = {}
+    body: list[str] = []
+    endpoint: str
 
-    # update the response code
-    def status(self, code: ResponseCode) -> "Request":
-        self.response.setCode(code)
-        return self
+    def __init__(self, raw_data: str):    
+        lines = raw_data.split("\r\n")
+        if len(lines) == 0:
+            raise ValueError("Request is poorly formed")
+        start_line = lines.pop(0)
+        parts = start_line.split(" ")
+        if len(parts) != 3:
+            raise ValueError("Request does not have required format")
+        if parts[2] != "HTTP/1.1":
+            raise ValueError("Wrong http verion")
+        self.method = RequestMethod(parts[0])
+        self.version = parts[2]
+        self.path = parts[1]
+        self.path_components = [c for c in self.path.split("/") if c]
 
-    # set the response text
-    def text(self, text: str) -> "Request":
-        self.response.setText(text)
-        return self
-    
-    def content(self, text: str) -> "Request":
-        self.response.setFile(text)
-        return self
-    
-    # end the response by sending
-    def end(self) -> None:
-        self.response.send(self.conn)
-
-    # the path requested    
-    def path(self) -> str:
-        return self.header.path
-    
-    # request verb
-    def method(self) -> RequestMethod:
-        return self.header.method
-    
-    def getHeaderValue(self, key: str) -> str:
-        if key in self.header.headers:
-            return self.header.headers[key]
-        return ""
-
-
-class RequestHeader:
-    def __init__(self, request: list[str]):
-        requestLine = request.pop(0)
-        method, self.path, self.version = requestLine.split(" ") #gather key pieces of information from the start line
-        self.method = RequestMethod(method)
-
-        #grab the headers
-        self.headers = {}
-        while len(request) > 0:
-            line = request.pop(0) #grab the next line
+        # process headers
+        while len(lines) > 0:
+            line = lines.pop(0) #grab the next line
             
             if line == '':
                 # exit, the loop 
@@ -94,3 +66,17 @@ class RequestHeader:
                 #have a header, parse it
                 key, value = line.split(":", 1)
                 self.headers[key.strip().lower()] = value.strip()
+
+        # anything else will be the body
+        self.body = "\r\n".join(lines)
+
+        if len(self.path_components) > 0:
+            self.endpoint = f'{self.method.name} {self.path_components[0]}'
+        else:
+            self.endpoint = f'{self.method.name} '
+
+    def getHeaderValue(self, key: str) -> str:
+        if key in self.headers:
+            return self.headers[key]
+        else:
+            return None

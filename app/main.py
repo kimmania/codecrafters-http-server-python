@@ -1,27 +1,26 @@
-import socket, sys, threading
-from .requestprocessor import processRequest
+import argparse, sys
+from .webserver import WebServer
+from .requestprocessor import RequestProcessor
 
- 
-def main(directory: str | None):
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
+HOST = "localhost"
+PORT = 4221
+
+def main():
     print("Logs from your program will appear here!")
-    host = "127.0.0.1"
-    port = 4221
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--directory", default=None, required=False, type=str)
+    args = parser.parse_args()
+    server = WebServer(HOST, PORT, file_directory=args.directory)
 
-    with socket.create_server((host, port)) as server_socket:
-        while True:
-            (conn, addr) = server_socket.accept() # wait for client
-            print(f"Connection from {addr} has been established.")
-            connection = threading.Thread(target=processRequest, args=(conn,directory))
-            connection.start()
-
+    server.get("", RequestProcessor.upCheck)
+    server.get("echo", RequestProcessor.echo)
+    server.get("user-agent", RequestProcessor.returnUserAgent)
+    server.get("files", RequestProcessor.getFile)
+    server.post("files", RequestProcessor.postFile)
+    try:
+        server.start()
+    finally:
+        server.stop()
 
 if __name__ == "__main__":
-    args = sys.argv
-    print(args)
-    for i in range(len(args)):
-        if args[i] == "--directory":
-            directory = args[i + 1]
-            print("directory= " + directory)
-            main(directory)
-    main(None)
+    sys.exit(main())
