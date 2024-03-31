@@ -32,13 +32,13 @@ def get(request: Request, directory: str | None = None) -> None:
             request.status(ResponseCode.OK).text(request.getHeaderValue("user-agent")).end()
         case path if path.startswith("/echo/"):
             request.status(ResponseCode.OK).text(path.removeprefix("/echo/")).end()
-        case path if path.startswith("/file/"):
+        case path if path.startswith("/files/"):
             retrieveFile(request, directory)
         case _:
             request.status(ResponseCode.NOT_FOUND).end()
 
 def retrieveFile(request: Request, directory: str | None = None) -> None:
-    filename = request.path().removeprefix('/file')
+    filename = request.path().removeprefix('/files/')
 
     if directory != None:
         filepath = directory + filename
