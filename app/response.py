@@ -52,6 +52,10 @@ class Response():
     # Add content to the response, update the content type to text plain
     def setText(self, text: str) -> None:
         self.body.setContent(text, ContentType.TEXT_PLAIN)
+
+    # Set file contens to the response, update the content type to be application/octet-stream
+    def setFile(self, text: str) -> None:
+        self.body.setContent(text, ContentType.APPLICATION_OCTET_STREAM)
     
     # Set the response code
     def setCode(self, code: ResponseCode) -> None:

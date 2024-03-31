@@ -2,7 +2,7 @@ from enum import Enum
 from socket import socket
 from .response import Response, ResponseCode
 
-Max_BUFFER_SIZE = 1024
+Max_BUFFER_SIZE = 4096
 
 class RequestMethod(Enum):
     GET = "GET"
@@ -51,6 +51,10 @@ class Request:
     # set the response text
     def text(self, text: str) -> "Request":
         self.response.setText(text)
+        return self
+    
+    def content(self, text: str) -> "Request":
+        self.response.setFile(text)
         return self
     
     # end the response by sending
