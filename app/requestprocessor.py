@@ -4,17 +4,19 @@ from .webserver import WebServer
 from .request import Request
 from .response import Response, ResponseCode
 
+# Collection of static functions used to process the request with a resulting response
 class RequestProcessor:
+    # the "/" get request
     def upCheck(request: Request, s: WebServer) -> Response:
         print("upcheck")
         return Response(ResponseCode.OK)
-
+    #"/echo/{content}"
     def echo(request: Request, s: WebServer) -> Response:
         print("echo")
         path_suffix = "/".join(request.path_components[1:])
         return Response(ResponseCode.OK).setContent(path_suffix, ContentType.TEXT_PLAIN)
 
-        
+    #"/user-agent
     def returnUserAgent(request: Request, s: WebServer) -> Response:
         print("useragent")
         agent = request.getHeaderValue("user-agent")
@@ -23,6 +25,7 @@ class RequestProcessor:
         
         return Response(ResponseCode.OK).setContent(agent, ContentType.TEXT_PLAIN)
 
+    #"/files/{filename}
     def getFile(request: Request, s: WebServer) -> Response:
         print("getfile")
         files_in_dir = [
@@ -38,6 +41,7 @@ class RequestProcessor:
         else:
             return Response(ResponseCode.NOT_FOUND)
 
+    #"files/{filename}" and body is the file contents
     def postFile(request: Request, s: WebServer) -> Response:
         print("postfile")
         expected_file = request.path_components[1]
